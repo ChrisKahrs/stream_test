@@ -6,11 +6,12 @@ import datetime
 import requests
 
 # Fetch menu data from the server
-response = requests.post("https://ckfastapi.azurewebsites.net/menu")
-menu_data = response.json()
+if "initial_menu_data" not in st.session_state:
+    response = requests.post("https://ckfastapi.azurewebsites.net/menu")
+    st.session_state.initial_menu_data = response.json()
 
 # Create a deep copy of the original data to track changes
-initial_menu_data = copy.deepcopy(menu_data)
+menu_data = copy.deepcopy(st.session_state.initial_menu_data)
 
 # Streamlit app
 def main():
@@ -70,8 +71,13 @@ def main():
         for category, items in updated_menu_data.items():
             for item, attributes in items.items():
                 new_value = attributes.get("value")
-                old_value = initial_menu_data.get(category, {}).get(item, {}).get("value")
-                if new_value != old_value:
+                old_value = st.session_state.initial_menu_data.get(category, {}).get(item, {}).get("value")
+                if isinstance(new_value, bool):
+                    if new_value != old_value and (new_value is not False or old_value is not None):
+                        if category not in changed_items:
+                            changed_items[category] = {}
+                        changed_items[category][item] = new_value
+                elif new_value != old_value:
                     if category not in changed_items:
                         changed_items[category] = {}
                     changed_items[category][item] = new_value
@@ -81,7 +87,6 @@ def main():
             response = requests.post("https://ckfastapi.azurewebsites.net/menu2", json=changed_items)
             if response.status_code == 200:
                 st.success("Data submitted to the server!")
-                st.json(changed_items)
             else:
                 st.error("Failed to submit data to the server.")
         else:
@@ -89,6 +94,26 @@ def main():
 
         # Reset the timer after submission
         st.session_state.finish_time = datetime.datetime.now() + datetime.timedelta(seconds=30)
+
+    # Display changed items ready for submission at the bottom
+    changed_items = {}
+    for category, items in updated_menu_data.items():
+        for item, attributes in items.items():
+            new_value = attributes.get("value")
+            old_value = st.session_state.initial_menu_data.get(category, {}).get(item, {}).get("value")
+            if isinstance(new_value, bool):
+                if new_value != old_value and (new_value is not False or old_value is not None):
+                    if category not in changed_items:
+                        changed_items[category] = {}
+                    changed_items[category][item] = new_value
+            elif new_value != old_value:
+                if category not in changed_items:
+                    changed_items[category] = {}
+                changed_items[category][item] = new_value
+
+    if changed_items:
+        st.subheader("Changed Items Ready to Submit:")
+        st.json(changed_items)
 
     # Start the countdown timer
     while True:
