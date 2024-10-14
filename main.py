@@ -3,29 +3,11 @@ import json
 import copy
 import time
 import datetime
+import requests
 
-# Sample JSON structure
-menu_json = """
-{
-    "Food": {
-        "Burger": {"value": 10, "type": "int"},
-        "Pizza": {"value": 12.5, "type": "float"},
-        "Is_Vegetarian": {"value": false, "type": "bool"},
-        "Chips": {"value": "Plain", "type": "single_select_list", "options": ["Plain", "BBQ", "S&V"]}
-    },
-    "Drinks": {
-        "Water": {"value": 1, "type": "int"},
-        "Soda": {"value": 2, "type": "int"},
-        "Soda_Type": {"value": "Regular", "type": "str"}
-    },
-    "Snacks": {
-        "Fries": {"value": true, "type": "bool"}
-    }
-}
-"""
-
-# Parse the JSON string
-menu_data = json.loads(menu_json)
+# Fetch menu data from the server
+response = requests.post("https://ckfastapi.azurewebsites.net/menu")
+menu_data = response.json()
 
 # Create a deep copy of the original data to track changes
 initial_menu_data = copy.deepcopy(menu_data)
@@ -96,8 +78,12 @@ def main():
 
         # Simulating sending data to server
         if changed_items:
-            st.success("Data submitted to the server!")
-            st.json(changed_items)
+            response = requests.post("https://ckfastapi.azurewebsites.net/menu2", json=changed_items)
+            if response.status_code == 200:
+                st.success("Data submitted to the server!")
+                st.json(changed_items)
+            else:
+                st.error("Failed to submit data to the server.")
         else:
             st.warning("No changes to submit.")
 
