@@ -10,11 +10,21 @@ if "initial_menu_data" not in st.session_state:
     response = requests.post("https://ckfastapi.azurewebsites.net/menu")
     st.session_state.initial_menu_data = response.json()
 
+if "finish_time" not in st.session_state:
+    st.session_state.finish_time = datetime.datetime.now() + datetime.timedelta(seconds=st.session_state.initial_menu_data.get("time_limit", 30))
+
 # Create a deep copy of the original data to track changes
 menu_data = copy.deepcopy(st.session_state.initial_menu_data)
+changed_items = {}
+
+def str2bool(v):
+    if v.lower() == "true":
+        return True
+    return False
 
 # Streamlit app
 def main():
+    global menu_data, changed_items
     st.title("Interactive Menu Editor")
 
     # Show instructions
@@ -47,7 +57,7 @@ def main():
                 elif value_type == "str":
                     new_value = st.text_input(f"{item}", value=str(value), key=f"{category}_{item}")
                 elif value_type == "bool":
-                    new_value = st.checkbox(f"{item}", value=bool(value), key=f"{category}_{item}")
+                    new_value = st.checkbox(f"{item}", value=str2bool(value), key=f"{category}_{item}")
                 elif value_type == "single_select_list":
                     options = attributes.get("options", [])
                     new_value = st.selectbox(f"{item}", options=options, index=options.index(value) if value in options else 0, key=f"{category}_{item}")
@@ -67,20 +77,7 @@ def main():
 
     # Function to simulate data submission
     def submit_data():
-        changed_items = {}
-        for category, items in updated_menu_data.items():
-            for item, attributes in items.items():
-                new_value = attributes.get("value")
-                old_value = st.session_state.initial_menu_data.get(category, {}).get(item, {}).get("value")
-                if isinstance(new_value, bool):
-                    if new_value != old_value and (new_value is not False or old_value is not None):
-                        if category not in changed_items:
-                            changed_items[category] = {}
-                        changed_items[category][item] = new_value
-                elif new_value != old_value:
-                    if category not in changed_items:
-                        changed_items[category] = {}
-                    changed_items[category][item] = new_value
+        global changed_items
 
         # Simulating sending data to server
         if changed_items:
@@ -101,15 +98,13 @@ def main():
         for item, attributes in items.items():
             new_value = attributes.get("value")
             old_value = st.session_state.initial_menu_data.get(category, {}).get(item, {}).get("value")
-            if isinstance(new_value, bool):
-                if new_value != old_value and (new_value is not False or old_value is not None):
+            if new_value != old_value:
+                if type(new_value) == bool and (str2bool(old_value) == new_value):
+                        continue
+                else:
                     if category not in changed_items:
                         changed_items[category] = {}
                     changed_items[category][item] = new_value
-            elif new_value != old_value:
-                if category not in changed_items:
-                    changed_items[category] = {}
-                changed_items[category][item] = new_value
 
     if changed_items:
         st.subheader("Changed Items Ready to Submit:")
@@ -119,6 +114,7 @@ def main():
     while True:
         current_time = datetime.datetime.now()
         time_left = (st.session_state.finish_time - current_time).total_seconds()
+        time_limit = st.session_state.initial_menu_data.get("time_limit", 30)
 
         if time_left <= 0:
             st.warning("Time's up! Automatically submitting data to the server...")
@@ -128,9 +124,9 @@ def main():
             submit_data()
             break
         else:
-            progress_bar_top.progress((30 - time_left) / 30)
+            progress_bar_top.progress((time_limit - time_left) / time_limit)
             timer_placeholder_top.text(f"Time left: {int(time_left)} seconds")
-            progress_bar_bottom.progress((30 - time_left) / 30)
+            progress_bar_bottom.progress((time_limit - time_left) / time_limit)
             timer_placeholder_bottom.text(f"Time left: {int(time_left)} seconds")
 
         # Wait for one second between updates
