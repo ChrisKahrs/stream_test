@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import json
+import requests
 
 # Fake JSON data as if coming from an API
 fake_api_response = '''
@@ -22,13 +23,26 @@ fake_api_response = '''
 api_data = json.loads(fake_api_response)
 data = np.array(api_data['data'])
 
-# Set up Streamlit state for view mode
-if 'view_mode' not in st.session_state:
-    st.session_state['view_mode'] = 'vertical'
+# Text box for match ID
+match_id = st.text_input('Enter Match ID:', '')
 
-# Button to toggle view mode
-if st.button('Flip View'):
-    st.session_state['view_mode'] = 'horizontal' if st.session_state['view_mode'] == 'vertical' else 'vertical'
+# Button to submit game state to API
+if st.button('Submit Game State') and match_id:
+    url = f'https://ckfastapi.azurewebsites.net/match/{match_id}'
+    game_state = {
+        "board": data.tolist(),
+        "total_score": api_data['total_score']
+    }
+    try:
+        response = requests.post(url, json=game_state)
+        if response.status_code == 200:
+            updated_data = response.json()['board']
+            data = np.array(updated_data)
+            st.success('Game state updated successfully!')
+        else:
+            st.error(f'Failed to update game state. Status code: {response.status_code}')
+    except requests.RequestException as e:
+        st.error(f'Error connecting to the server: {e}')
 
 # Set up the dimensions of the table
 rows, cols = data.shape

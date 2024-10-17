@@ -27,6 +27,9 @@ def main():
     global menu_data, changed_items
     st.title("Interactive Menu Editor")
 
+    # URL suffix input
+    url_suffix = st.text_input("Enter URL Suffix", key="url_suffix")
+
     # Show instructions
     st.write("Click on a menu item to edit the value.")
 
@@ -81,7 +84,8 @@ def main():
 
         # Simulating sending data to server
         if changed_items:
-            response = requests.post("https://ckfastapi.azurewebsites.net/menu2", json=changed_items)
+            post_url = f"https://ckfastapi.azurewebsites.net/menu2/{url_suffix}" if url_suffix else "https://ckfastapi.azurewebsites.net/menu2"
+            response = requests.post(post_url, json=changed_items)
             if response.status_code == 200:
                 st.success("Data submitted to the server!")
             else:
