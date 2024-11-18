@@ -25,13 +25,13 @@ def str2bool(v):
 # Streamlit app
 def main():
     global menu_data, changed_items
-    st.title("Interactive Menu Editor")
+    st.title("Controller Menu")
 
     # URL suffix input
-    url_suffix = st.text_input("Enter URL Suffix", key="url_suffix")
+    url_suffix = st.text_input("Enter Game Id:", key="url_suffix")
 
     # Show instructions
-    st.write("Click on a menu item to edit the value.")
+    st.write("Click on a menu item to expand and edit the values.")
 
     # Track changes
     updated_menu_data = copy.deepcopy(menu_data)
@@ -70,11 +70,6 @@ def main():
                 # Update the JSON data with the new value
                 updated_menu_data[category][item]["value"] = new_value
 
-    # Add an open text input for other ideas
-    other_ideas = st.text_input("Other Ideas", key="Other_Ideas")
-    if other_ideas:
-        updated_menu_data["Other_Ideas"] = {"value": other_ideas, "type": "str"}
-
     progress_bar_bottom = st.progress(0)
     timer_placeholder_bottom = st.empty()
 
@@ -111,8 +106,8 @@ def main():
                     changed_items[category][item] = new_value
 
     if changed_items:
-        st.subheader("Changed Items Ready to Submit:")
-        st.json(changed_items)
+        with st.expander("Changed Items Ready to Submit:"):
+            st.json(changed_items)
 
     # Start the countdown timer
     while True:

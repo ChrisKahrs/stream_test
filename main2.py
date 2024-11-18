@@ -58,7 +58,7 @@ triangle_count = 0
 html_table = "<table style='border-collapse: collapse; width: 100%;'>"
 
 # Create table rows or columns based on view mode
-if st.session_state['view_mode'] == 'vertical':
+if True:
     for row in data:
         html_table += "<tr>"
         for cell in row:
